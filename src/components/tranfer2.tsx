@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from 'react';
+
 import {
   WalletNotConnectedError,
   SignerWalletAdapterProps,
@@ -32,23 +33,14 @@ const configureAndSendCurrentTransaction = async (
   console.log("transaction", transaction);
 
   const signed = await provider.signAllTransactions([transaction]);
-  console.log("signed", signed[0].signatures[0].signature?.toString());
   const signature = await connection.sendRawTransaction(signed[0].serialize());
-  console.log("signature", signature);
-  // return signed;
-  // const signature = await connection.sendRawTransaction(signed.serialize());
-  // console.log("signature", signature);
-  // await connection.confirmTransaction({
-  //   blockhash: blockHash.blockhash,
-  //   lastValidBlockHeight: blockHash.lastValidBlockHeight,
-  //   signed,
-  // });
-  // const signature = await connection.confirmTransaction(signed[0].signature);
   return signature;
 };
 
 const SendSolanaSplTokens = () => {
 
+  const [revieverAddress, setRevieverAddress] = useState<string>("");
+  const [amount, setAmount] = useState<number>(0);
 
 
   const provider = new PhantomWalletAdapter();
@@ -70,9 +62,9 @@ const SendSolanaSplTokens = () => {
       const mintToken = new PublicKey(
         "Ak6SpkzdXPNKMjqyMHZ1niQqFWMDGWrNsdG4Tu2bYZKq"
       ); // 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU is USDC token address on solana devnet
-      const recipientAddress = new PublicKey(
-        "GN5yB98Ln85rJSq2sJC1CqouAYfruzuFZKcFpM1eYVEV"
-      );
+      // const recipientAddress = new PublicKey(
+      //   "GN5yB98Ln85rJSq2sJC1CqouAYfruzuFZKcFpM1eYVEV"
+      // );
 
       const transactionInstructions: TransactionInstruction[] = [];
       const associatedTokenFrom = await getAssociatedTokenAddress(
@@ -82,14 +74,14 @@ const SendSolanaSplTokens = () => {
       const fromAccount = await getAccount(connection, associatedTokenFrom);
       const associatedTokenTo = await getAssociatedTokenAddress(
         mintToken,
-        recipientAddress
+        new PublicKey(revieverAddress)
       );
       if (!(await connection.getAccountInfo(associatedTokenTo))) {
         transactionInstructions.push(
           createAssociatedTokenAccountInstruction(
             publicKey,
             associatedTokenTo,
-            recipientAddress,
+            new PublicKey(revieverAddress),
             mintToken
           )
         );
@@ -99,7 +91,7 @@ const SendSolanaSplTokens = () => {
           fromAccount.address, // source
           associatedTokenTo, // dest
           publicKey,
-          10000000 // transfer 1 USDC, USDC on solana devnet has 6 decimal
+          amount * 1000000000 // transfer 1 USDC, USDC on solana devnet has 6 decimal
         )
       );
       const transaction = new Transaction().add(...transactionInstructions);
@@ -113,7 +105,6 @@ const SendSolanaSplTokens = () => {
       );
 
       console.log("signature", signature);
-      // signature is transaction address, you can confirm your transaction on 'https://explorer.solana.com/?cluster=devnet'
     } catch (error) {
       console.error("Error:", error);
     }
@@ -121,6 +112,11 @@ const SendSolanaSplTokens = () => {
 
   return (
     <div>
+      <h1>Send solana spl tokens</h1>
+      <input type="text" value={revieverAddress} onChange={(e) => setRevieverAddress(String(e.target.value))} />
+      <br />
+      <input type="number" value={amount} onChange={(e) => setAmount(parseInt(e.target.value))} />
+      <br />
       <button onClick={handlePayment}>Transfer spl token</button>
     </div>
   );
